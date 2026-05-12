@@ -1,22 +1,25 @@
 cmake_minimum_required (VERSION 3.21)
 project (assignment_5B)
 
-# --- 1. C++ STANDARD CONFIGURATION ---
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# --- 2. AUTOMATIC DEPENDENCY DOWNLOAD (FETCHCONTENT) ---
+if(MSVC)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+endif()
+
 include(FetchContent)
 
-# --- GLFW ---
 FetchContent_Declare(
     glfw
     GIT_REPOSITORY https://github.com/glfw/glfw.git
     GIT_TAG        3.4
 )
+set(GLFW_BUILD_DOCS     OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(glfw)
 
-# --- GLM (Math Library) ---
 FetchContent_Declare(
     glm
     GIT_REPOSITORY https://github.com/g-truc/glm.git
@@ -24,41 +27,28 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
-# --- Dear ImGui (UI Library) ---
-FetchContent_Declare(
-    imgui
-    GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG        docking
-)
-FetchContent_MakeAvailable(imgui)
-
-# --- 3. INCLUDE DIRECTORIES ---
 include_directories(common common/glad)
 
-# Adding compile units to executable
 add_executable(${PROJECT_NAME}
-	src/glad.c 
-	src/CS247_prog.cpp
-	src/glslprogram.cpp
-	src/vboquad.cpp
-	# --- ImGui Source Files ---
-    ${imgui_SOURCE_DIR}/imgui.cpp
-    ${imgui_SOURCE_DIR}/imgui_draw.cpp
-    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-    ${imgui_SOURCE_DIR}/imgui_tables.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+    src/glad.c
+    src/CS247_prog.cpp
+    src/glslprogram.cpp
+    src/vboquad.cpp
 )
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    PROJECT_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+)
 
-# Set project assignment as startup project in Visual Studio
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT assignment_3)
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
-# C++ Compiler options
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-
-# Add imgui source dir to our include path
-target_include_directories(${PROJECT_NAME} PRIVATE ${imgui_SOURCE_DIR})
-
-# --- 5. LINK LIBRARIES ---
-target_link_libraries(${PROJECT_NAME} glfw opengl32 glm::glm)
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE glfw opengl32 glm::glm)
+elseif(APPLE)
+    find_package(OpenGL REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE glfw OpenGL::GL glm::glm "-framework Cocoa" "-framework IOKit" "-framework CoreVideo")
+else()
+    find_package(OpenGL REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE glfw OpenGL::GL glm::glm dl pthread)
+endif()

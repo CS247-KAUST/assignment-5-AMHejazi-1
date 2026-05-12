@@ -19,6 +19,12 @@
 #include "glslprogram.h"
 #include "vboquad.h"
 
+enum ColormapMode { COLORMAP_OFF = 0, COLORMAP_RAINBOW = 1, COLORMAP_COOLWARM = 2 };
+enum IntegratorMethod { METHOD_EULER = 0, METHOD_RK2 = 1 };
+
+struct StreamSeed { int x; int y; std::vector<glm::vec2> polyline; };
+struct PathSeed { int x; int y; int t; std::vector<glm::vec2> polyline; };
+
 
 ////////////////
 // Structures //
@@ -36,6 +42,14 @@ bool en_pathline;
 
 int sampling_rate;
 float dt;
+
+int colormap_mode;
+float blend_factor;
+int integrator_method;
+bool arrow_scale_by_mag;
+
+std::vector<StreamSeed> streamline_seeds;
+std::vector<PathSeed> pathline_seeds;
 
 
 
@@ -85,6 +99,21 @@ int toggle_xy;
 ////////////////
 
 void drawGlyphs();
+void drawStreamlines();
+void drawPathlines();
+
+void initOverlayBuffers(GLuint& vao, GLuint& vbo);
+
+glm::vec2 getVector(int x, int y, int t);
+glm::vec2 bilinearInterpolate(glm::vec2 pos, int t);
+glm::vec2 trilinearInterpolate(glm::vec2 pos, float t);
+glm::vec2 eulerStep(glm::vec2 x_current, float step, int t);
+glm::vec2 rk2Step(glm::vec2 x_current, float step, int t);
+glm::vec2 eulerStepTime(glm::vec2 x_current, float step, float t);
+glm::vec2 rk2StepTime(glm::vec2 x_current, float step, float t);
+
+void rebuildAllStreamlines();
+void rebuildAllPathlines();
 
 void computeStreamline(int x, int y);
 
@@ -102,6 +131,12 @@ void reset_rendering_props( void );
 
 // TODO: define data arrays, VAO and VBO
 // Hint: you need one for the glyphs, streamlines, pathlines
+GLuint glyph_vao;
+GLuint glyph_vbo;
+GLuint streamline_vao;
+GLuint streamline_vbo;
+GLuint pathline_vao;
+GLuint pathline_vbo;
 
 // TODO: define colormap variables
 // Hint: you need a colormap mode (off/rainbow/cool-warm) and a blend factor
